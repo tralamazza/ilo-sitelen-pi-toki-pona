@@ -626,7 +626,9 @@ def machCursorbewegung(kk,kmod):
 			else:
 				aktuelle_zeile = aktuelles_blatt[cursor_y]
 
-				cursor_x=len(aktuelle_zeile)-1
+				cursor_x=len(aktuelle_zeile)
+				if cursor_x>=zeichen_pro_zeile:
+					cursor_x=zeichen_pro_zeile-1
 		else:
 			if blatt_idx==len(blätter)-1:
 				blätter.append([])
