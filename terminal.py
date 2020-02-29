@@ -473,6 +473,8 @@ def zeiche_Bild(bildfläche,hg,zeichen):
 		if l>=len(blatt):
 			break
 
+		print("l",l)
+		print("len(blatt)",len(blatt))
 		zeiche_Zeile(bildfläche,zeichen,blatt[l],(seite_pos[0],seite_pos[1]+i))
 
 	zeiche_Cursor(bildfläche,zeichen)
@@ -530,6 +532,10 @@ def fitCursor():
 	elif cursor_y<v_Position:
 		v_Position=cursor_y
 
+	if v_Position<0:
+		v_Position=0
+
+
 
 def machCursorbewegung(kk,kmod):	
 	global cursor_x
@@ -545,17 +551,20 @@ def machCursorbewegung(kk,kmod):
 
 
 	if kk==49:#links
-		if cursor_x==0:
-			if cursor_y>0:
-				cursor_y=cursor_y-1;
-				aktuelle_zeile = aktuelles_blatt[cursor_y]
-
-				cursor_x=len(aktuelle_zeile)
-
-				if cursor_x==zeichen_pro_zeile:
-					cursor_x=cursor_x-1
+		if kmod==1:			
+			cursor_x=0
 		else:
-			cursor_x=cursor_x-1
+			if cursor_x==0:
+				if cursor_y>0:
+					cursor_y=cursor_y-1;
+					aktuelle_zeile = aktuelles_blatt[cursor_y]
+
+					cursor_x=len(aktuelle_zeile)
+
+					if cursor_x==zeichen_pro_zeile:
+						cursor_x=cursor_x-1
+			else:
+				cursor_x=cursor_x-1
 
 	elif kk==50:#oben
 		if cursor_y>0:
@@ -577,15 +586,25 @@ def machCursorbewegung(kk,kmod):
 				cursor_x=zeile_länge
 
 	elif kk==51:#rechts	
-		if cursor_y==len(aktuelles_blatt):
-			pass
+		if kmod==1:
+			if cursor_y==len(aktuelles_blatt):
+				pass
+			else:
+				aktuelle_zeile = aktuelles_blatt[cursor_y]
+
+				cursor_x=len(aktuelle_zeile)
+				if cursor_x>=zeichen_pro_zeile:
+					cursor_x=zeichen_pro_zeile-1
 		else:
-			aktuelle_zeile = aktuelles_blatt[cursor_y]
-			if (cursor_x==zeichen_pro_zeile-1) or (cursor_x==len(aktuelle_zeile)):
-				cursor_x=0
-				cursor_y=cursor_y+1
-			elif cursor_x<len(aktuelle_zeile):
-				cursor_x=cursor_x+1
+			if cursor_y==len(aktuelles_blatt):
+				pass
+			else:
+				aktuelle_zeile = aktuelles_blatt[cursor_y]
+				if (cursor_x==zeichen_pro_zeile-1) or (cursor_x==len(aktuelle_zeile)):
+					cursor_x=0
+					cursor_y=cursor_y+1
+				elif cursor_x<len(aktuelle_zeile):
+					cursor_x=cursor_x+1
 	elif kk==119:#unten
 		if cursor_y<len(aktuelles_blatt):
 			if kmod==0:
@@ -609,27 +628,14 @@ def machCursorbewegung(kk,kmod):
 			else:
 				cursor_x=0
 
-	elif kk==97:#anfang
-		if kmod==0:			
-			cursor_x=0
-		else:
+	elif kk==97:#anfang	
 			if blatt_idx>0:
 				blatt_idx=blatt_idx-1
 				speichere_globale_Daten()
 				cursor_x=0
 				cursor_y=0
 
-	elif kk==113:#ende
-		if kmod==0:
-			if cursor_y==len(aktuelles_blatt):
-				pass
-			else:
-				aktuelle_zeile = aktuelles_blatt[cursor_y]
-
-				cursor_x=len(aktuelle_zeile)
-				if cursor_x>=zeichen_pro_zeile:
-					cursor_x=zeichen_pro_zeile-1
-		else:
+	elif kk==113:#ende		
 			if blatt_idx==len(blätter)-1:
 				blätter.append([])
 
@@ -654,6 +660,12 @@ def machFormatting(kk,kmod):
 	blatt=blätter[blatt_idx]
 
 	if kk==122:#rücktaste
+		if kmod:
+			blätter[blatt_idx]=[]
+			cursor_x=0
+			cursor_y=0
+			return
+
 		if len(eingabewort)>0:
 			eingabewort=eingabewort[:-1]
 		elif cursor_x>0:
