@@ -2,6 +2,10 @@
 import os
 import sys
 import re
+import json
+
+if len(os.path.dirname(sys.argv[0]))>0:
+	os.chdir(os.path.dirname(sys.argv[0]))
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 os.environ["DISPLAY"]=":0"
@@ -45,7 +49,7 @@ keyname = {
 	103: "WU",
 	104: " ",
 
-	# 304: "pali",  MOD = 1 for shiftb
+	304: "pali",#  MOD = 1 for shiftb
 	120: ".",
 	99: "!",
 	118: "?",
@@ -53,15 +57,25 @@ keyname = {
 
 }
 
+interpunktion_codes = {
+	52: ":",
+	53: "\"",
+	115: ",",
+	120: ".",
+	99: "!",
+	118: "?",
 
+}
 
 def kk_seiAlpha(kk):
 	return kk==101 or kk==114 or kk==116 or kk==100 or kk==102 or kk==103
 
 
 def kk_wortEnde(kk):
-	return kk==52 or kk==53 or kk==115 or kk==104 or kk==120 or kk==99 or kk==118 
+	return kk==104 
 
+def kk_Interpunktion(kk):
+	return kk==52 or kk==53 or kk==115 or kk==120 or kk==99 or kk==118 
 
 def kk_Cursorbewegung(kk):
 	return kk==49 or kk==50 or kk==51 or kk==113 or kk==119 or kk==97
@@ -73,7 +87,6 @@ def kk_Formatting(kk):
 v_Position=0
 
 
-zustand = dict()
 
 blatt_idx=0
 
@@ -235,7 +248,17 @@ for w in alleWörter:
 	deckname = "".join(list(map(buchstabe_zu_kk,w)))
 	decknamen[deckname]=w
 
-print(decknamen)
+alle_decknamen=decknamen.keys()
+
+def wurzelzahl(wurzel):
+	zahl=0
+	ziel=""
+	for deckname in alle_decknamen:
+		if wurzel==deckname[:len(wurzel)]:
+			zahl=zahl+1
+			ziel=deckname
+	return (zahl,ziel)
+
 
 def wortIndex(w):
 	for idx,toks in enumerate(wörter):
@@ -253,18 +276,25 @@ def wortIndex(w):
 	return (-1,-1)
 
 def lade_globalen_Zustand():
-	global zustand
-	dname="zustand"
+	global blatt_idx
+
+	dname="lipu/zustand.cfg"
 	if (os.path.isfile(dname)):
-		with open("zustand", "rb") as f:
-			zustand = pickle.load(f)
+		with open("lipu/zustand.cfg", "r") as f:
+			zustand = json.load(f)
+			print(zustand)
+			blatt_idx=int(zustand['blatt_idx'])
 	else:
-		zustand['index']=0
+		blatt_idx=0
 
 
 def speichere_globale_Daten():
-	with open("zustand", "wb") as f:
-		pickle.dump(zustand, f)
+	global blatt_idx
+	zustand={
+		'blatt_idx':blatt_idx
+	}
+	with open("lipu/zustand.cfg", "w") as f:
+		json.dump(zustand, f)
 
 
 buchstaben="aeioujklmnpstw"
@@ -317,6 +347,25 @@ def parse_rohe_Datei(rohe):
 
 
 
+def speicheren_Datei(n):
+	global blätter
+	print("saving")
+
+	if n<0 or n>=len(blätter):
+		return
+
+	blatt=blätter[n]
+	datei_name="lipu/"+str(n)+".txt"
+
+	print("saving stuff to",datei_name)
+	def fuse_Linie(l):
+		return " ".join(l)
+	linien=map(fuse_Linie,blatt)
+	dateistr = "\n".join(linien)
+	f=open(datei_name,'w')
+	f.write(dateistr)
+	f.close();
+
 def lade_Datei():
 	global blätter
 
@@ -333,7 +382,6 @@ def lade_Datei():
 	blätter = list(map(parse_rohe_Datei,rohe_datein))
 
 
-
 def zeiche_Cursor(bildfläche,zeichen):
 	global cursor_x
 	global cursor_y
@@ -345,6 +393,43 @@ def zeiche_Cursor(bildfläche,zeichen):
 	draw_me = zeichen.subsurface(zeichen.get_clip())
 
 	bildfläche.blit(draw_me,(SCALE*(t_x-1),SCALE*(t_y-1)))
+
+def zeiche_Cursorinhalt(bildfläche,zeichen):
+	global cursor_x
+	global cursor_y
+	global SCALE
+	global eingabewort
+	global zeichen_sm
+
+	if len(eingabewort)==0:
+		return
+
+	t_x = 20*cursor_x + 1
+	t_y = 20*(cursor_y - v_Position) + 1
+
+	r = pygame.Rect(SCALE*t_x,SCALE*t_y,SCALE*18,SCALE*18)
+
+	BLACK = (0,0,0)
+	#WHITE = (255,255,255)
+
+	bildfläche.fill(BLACK,r)
+
+	for i,b in enumerate(eingabewort):
+		
+		(dy,dx) = divmod(i,3)
+		z_x=t_x+1+6*dx
+		z_y=t_y+1+9*dy
+
+		zeichen_idx = "mpsltw".find(b)
+
+		zeichen_sm.set_clip(36+(18*zeichen_idx),252,8,15)
+		draw_me = zeichen_sm.subsurface(zeichen_sm.get_clip())
+
+		bildfläche.blit(draw_me,(SCALE*(z_x),SCALE*(z_y)))
+
+
+	#pygame.draw.rect(bildfläche,WHITE,r,SCALE)
+
 
 
 def zeiche_Zeile(bildfläche,zeichen,s,pos):
@@ -420,6 +505,8 @@ def zeiche_Bild(bildfläche,hg,zeichen):
 	bildfläche.fill(WHITE,r)
 	#pygame.draw.rect(bildfläche,WHITE,r,SCALE)
 
+	zeiche_Cursorinhalt(bildfläche,zeichen)
+
 	pygame.display.flip()    
 
 
@@ -450,8 +537,10 @@ def machCursorbewegung(kk,kmod):
 	global blatt_idx
 	global blätter
 	global v_Position
+	global eingabewort
 
-	print("BEWEG")
+	eingabewort=""
+
 	aktuelles_blatt = blätter[blatt_idx]
 
 
@@ -526,6 +615,7 @@ def machCursorbewegung(kk,kmod):
 		else:
 			if blatt_idx>0:
 				blatt_idx=blatt_idx-1
+				speichere_globale_Daten()
 				cursor_x=0
 				cursor_y=0
 
@@ -540,7 +630,10 @@ def machCursorbewegung(kk,kmod):
 		else:
 			if blatt_idx==len(blätter)-1:
 				blätter.append([])
+
 			blatt_idx=blatt_idx+1
+
+			speichere_globale_Daten()
 
 			cursor_x=0
 			cursor_y=0
@@ -554,15 +647,29 @@ def machFormatting(kk,kmod):
 	global blatt_idx
 	global blätter
 	global v_Position
+	global eingabewort
 
 	blatt=blätter[blatt_idx]
 
 	if kk==122:#rücktaste
-		if cursor_x>0:
+		if len(eingabewort)>0:
+			eingabewort=eingabewort[:-1]
+		elif cursor_x>0:
 			cursor_x=cursor_x-1
 			zeile = blatt[cursor_y]
 			zeile.pop(cursor_x)
+		elif cursor_y>0:
+			if cursor_y==len(blatt):
+				cursor_y=cursor_y-1
+				cursor_x=len(blatt[cursor_y])
+			else:
+				aux_linie=blatt.pop(cursor_y)
+				cursor_y=cursor_y-1
+				cursor_x=len(blatt[cursor_y])
+				blatt[cursor_y]=(blatt[cursor_y]+aux_linie)[:zeichen_pro_zeile]
+
 	elif kk==54:#tab
+		eingabewort=""
 		if cursor_y==len(blatt):
 			blatt.append([])
 		zeile = blatt[cursor_y]
@@ -582,7 +689,10 @@ def machFormatting(kk,kmod):
 					cursor_x=zeile_länge
 			else:
 				cursor_x=0
-	elif kk==98:#enter
+	elif kk==98:#enter 
+		if len(eingabewort)>0:
+			machWortEnde(104,kmod)
+
 		if cursor_y==len(blatt):
 			blatt.append([])
 			cursor_y=cursor_y+1
@@ -599,14 +709,102 @@ def machFormatting(kk,kmod):
 
 	fitCursor()
 
-def machBuchstabe(kk):
+def machInterpunktion(kk,kmod):
+	global cursor_x
+	global cursor_y
+	global blatt_idx
+	global blätter
+	global v_Position
+	global eingabewort
+	global decknamen
+
+	if len(eingabewort)>0:
+		machWortEnde(104,kmod)
+
+	blatt=blätter[blatt_idx]
+	
+	neues_wort = interpunktion_codes[kk]
+	if cursor_y==len(blatt):
+		blatt.append([])
+	
+	aktuelle_zeile = blatt[cursor_y]
+	if cursor_x==len(aktuelle_zeile):
+		aktuelle_zeile.append(neues_wort)
+	else:
+		aktuelle_zeile[cursor_x]=neues_wort
+	
+	cursor_x=cursor_x+1
+	if cursor_x>=zeichen_pro_zeile:
+		cursor_x=0
+		cursor_y=cursor_y+1
+
+	eingabewort=""
+
+	fitCursor()
+
+
+
+def machWortEnde(kk,kmod):
+	global cursor_x
+	global cursor_y
+	global blatt_idx
+	global blätter
+	global v_Position
+	global eingabewort
+	global decknamen
+
+	blatt=blätter[blatt_idx]
+
+	if kk==104:#leerzeichen
+		if not (eingabewort in decknamen):
+			eingabewort=""
+			return		
+
+		if len(eingabewort)==0 :
+			print("word",eingabewort,"not found")
+			eingabewort=""
+			return machCursorbewegung(51,kmod)
+
+		neues_wort = decknamen[eingabewort]
+		if cursor_y==len(blatt):
+			blatt.append([])
+		
+		aktuelle_zeile = blatt[cursor_y]
+		if cursor_x==len(aktuelle_zeile):
+			aktuelle_zeile.append(neues_wort)
+		else:
+			aktuelle_zeile[cursor_x]=neues_wort
+		
+		cursor_x=cursor_x+1
+		if cursor_x>=zeichen_pro_zeile:
+			cursor_x=0
+			cursor_y=cursor_y+1
+
+		eingabewort=""
+
+	fitCursor()
+
+
+def machBuchstabe(kk,kmod):
+	global eingabewort
+	if len(eingabewort)>=7:
+		return
+
 	bsb = keyname[kk][0].lower()
-	print (bsb)
+	eingabewort+=bsb
+
+
+	# (zahl,ziel)=wurzelzahl(eingabewort)
+	# if zahl==1:
+	# 	eingabewort=ziel
+	# 	machWortEnde(104,kmod)
 
 # define a main function
 def main():
 	global SCALE
 	global v_Position
+	global zeichen_sm
+
 	clock = pygame.time.Clock()
 
 	lade_Datei()
@@ -620,6 +818,7 @@ def main():
 	pygame.event.set_blocked(pygame.MOUSEMOTION)
 	pygame.event.set_blocked(pygame.MOUSEBUTTONDOWN)
 	pygame.event.set_blocked(pygame.MOUSEBUTTONUP)
+	pygame.event.set_blocked(pygame.KEYUP)
 
 
 	# load and set the logo
@@ -656,12 +855,14 @@ def main():
 
 			if keyname.get(event.key)== None:
 				continue
-
-			if kk_seiAlpha(event.key):
-				machBuchstabe(event.key)
-				print("kk_seiAlpha")
+			if event.key==304:
+				speicheren_Datei(blatt_idx)
+			elif kk_seiAlpha(event.key):
+				machBuchstabe(event.key,event.mod)
 			elif kk_wortEnde(event.key):
-				print("kk_wortEnde")
+				machWortEnde(event.key,event.mod)
+			elif kk_Interpunktion(event.key):
+				machInterpunktion(event.key,event.mod)
 			elif kk_Cursorbewegung(event.key):
 				machCursorbewegung(event.key,event.mod)
 			elif kk_Formatting(event.key):
