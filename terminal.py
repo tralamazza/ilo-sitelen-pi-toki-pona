@@ -3,6 +3,7 @@ import os
 import sys
 import re
 import json
+from subprocess import call
 
 if len(os.path.dirname(sys.argv[0]))>0:
 	os.chdir(os.path.dirname(sys.argv[0]))
@@ -704,22 +705,27 @@ def machFormatting(kk,kmod):
 			else:
 				cursor_x=0
 	elif kk==98:#enter 
-		if len(eingabewort)>0:
-			machWortEnde(104,kmod)
-
-		if cursor_y==len(blatt):
-			blatt.append([])
-			cursor_y=cursor_y+1
+		if kmod==1:
+			print("shutdown")
+			output = call("sudo nohup shutdown -h now", shell=True)
+			print(output)
 		else:
-			aktuelle_zeile = blatt[cursor_y]
-			teil_wan = aktuelle_zeile[:cursor_x]
-			teil_tu = aktuelle_zeile[cursor_x:]
+			if len(eingabewort)>0:
+				machWortEnde(104,kmod)
 
-			blatt[cursor_y]=teil_wan
-			blatt.insert(cursor_y+1,teil_tu)
+			if cursor_y==len(blatt):
+				blatt.append([])
+				cursor_y=cursor_y+1
+			else:
+				aktuelle_zeile = blatt[cursor_y]
+				teil_wan = aktuelle_zeile[:cursor_x]
+				teil_tu = aktuelle_zeile[cursor_x:]
 
-			cursor_y=cursor_y+1
-			cursor_x=0
+				blatt[cursor_y]=teil_wan
+				blatt.insert(cursor_y+1,teil_tu)
+
+				cursor_y=cursor_y+1
+				cursor_x=0
 
 	fitCursor()
 
