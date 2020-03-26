@@ -44,7 +44,7 @@ keyname = {
 	122: "rücktaste",
 
 	97: "anfang",
-	115: ",",
+	115: "!",
 	100: "TOK",
 	102: "PA",
 	103: "WU",
@@ -52,7 +52,7 @@ keyname = {
 
 	304: "pali",#  MOD = 1 for shiftb
 	120: ".",
-	99: "!",
+	99: ",",
 	118: "?",
 	98: "\n",
 
@@ -61,9 +61,9 @@ keyname = {
 interpunktion_codes = {
 	52: ":",
 	53: "\"",
-	115: ",",
+	115: "!",
 	120: ".",
-	99: "!",
+	99: ",",
 	118: "?",
 
 }
@@ -76,7 +76,7 @@ def kk_wortEnde(kk):
 	return kk==104 
 
 def kk_Interpunktion(kk):
-	return kk==52 or kk==53 or kk==115 or kk==120 or kk==99 or kk==118 
+	return kk==52 or kk==53 or kk==99 or kk==120 or kk==115 or kk==118 
 
 def kk_Cursorbewegung(kk):
 	return kk==49 or kk==50 or kk==51 or kk==113 or kk==119 or kk==97
@@ -100,9 +100,9 @@ blätter = []
 wörter = [
 	["a","kin"],
 	["akesi"],
-	["ala","ale"],
+	["ala"],
 	["alasa"],
-	["ali"],
+	["ale","ali"],
 	["anpa"],
 	["ante"],
 	["anu"],
